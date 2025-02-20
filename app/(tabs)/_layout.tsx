@@ -34,24 +34,6 @@ export default function TabLayout() {
                     )
                 }}
             />
-            <Tabs.Screen
-                name="accountForm"
-                options={{
-                    title: "Edit account",
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol size={28} name="pencil" color={color} />
-                    )
-                }}
-            />
-            <Tabs.Screen
-                name="account"
-                options={{
-                    title: "Account",
-                    tabBarIcon: ({ color }) => (
-                        <IconSymbol size={28} name="person" color={color} />
-                    )
-                }}
-            />
         </Tabs>
     );
 }

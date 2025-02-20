@@ -46,7 +46,8 @@
                 }
             ],
             "expo-camera",
-            "expo-image-picker"
+            "expo-image-picker",
+            "expo-contacts"
         ],
         "experiments": {
             "typedRoutes": true
