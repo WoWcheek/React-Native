@@ -1,111 +1,171 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, ScrollView, TouchableOpacity } from "react-native";
-import * as Contacts from "expo-contacts";
-
-interface Contact {
-    name: string;
-    phoneNumber?: string;
-    nameMode: boolean;
-}
-
-const ContactCard = ({
-    contact,
-    onPress
-}: {
-    contact: Contact;
-    onPress: () => void;
-}) => {
-    return (
-        <TouchableOpacity style={styles.card} onPress={onPress}>
-            <Text style={styles.name}>
-                {contact.nameMode
-                    ? contact.name
-                    : contact.phoneNumber || "No number"}
-            </Text>
-        </TouchableOpacity>
-    );
-};
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import * as Battery from "expo-battery";
 
 const HomeScreen = () => {
-    const [contacts, setContacts] = useState<Contact[]>([]);
+    const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+    const [charging, setCharging] = useState<boolean | null>(null);
+    const [lowPowerMode, setLowPowerMode] = useState<boolean | null>(null);
+    const [batteryOptimization, setBatteryOptimization] = useState<
+        boolean | null
+    >(null);
 
     useEffect(() => {
-        (async () => {
-            const { status } = await Contacts.requestPermissionsAsync();
-            if (status === "granted") {
-                const { data } = await Contacts.getContactsAsync({
-                    fields: [Contacts.Fields.PhoneNumbers]
-                });
+        const fetchBatteryStatus = async () => {
+            const level = await Battery.getBatteryLevelAsync();
+            const chargingStatus = await Battery.getBatteryStateAsync();
+            const lowPower = await Battery.isLowPowerModeEnabledAsync();
+            const optimization =
+                await Battery.isBatteryOptimizationEnabledAsync();
 
-                setContacts(
-                    data
-                        .filter(x => x.name.length < 30)
-                        .map(contact => ({
-                            name: contact.name,
-                            phoneNumber: contact.phoneNumbers?.[0]?.number,
-                            nameMode: true
-                        }))
-                );
+            setBatteryLevel(level);
+            setCharging(chargingStatus === Battery.BatteryState.CHARGING);
+            setLowPowerMode(lowPower);
+            setBatteryOptimization(optimization);
+        };
+
+        fetchBatteryStatus();
+
+        const subscription = Battery.addBatteryLevelListener(
+            ({ batteryLevel }) => {
+                setBatteryLevel(batteryLevel);
             }
-        })();
+        );
+
+        return () => {
+            subscription.remove();
+        };
     }, []);
 
-    const toggleMode = (index: number) => {
-        setContacts(prevContacts =>
-            prevContacts.map((contact, i) =>
-                i === index
-                    ? { ...contact, nameMode: !contact.nameMode }
-                    : contact
-            )
-        );
-    };
+    const batteryPercentage =
+        batteryLevel !== null ? Math.round(batteryLevel * 100) : 0;
+    const batteryColor =
+        batteryPercentage > 50
+            ? "#00FF00"
+            : batteryPercentage > 20
+            ? "#FFA500"
+            : "#FF0000";
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
-            {contacts.length > 0 ? (
-                contacts.map((contact, i) => (
-                    <ContactCard
-                        key={i}
-                        contact={contact}
-                        onPress={() => toggleMode(i)}
+        <View style={styles.container}>
+            <Text style={styles.title}>🔋 Статус батареи</Text>
+
+            <View style={styles.batteryContainer}>
+                <View style={styles.batteryBody}>
+                    <View
+                        style={[
+                            styles.batteryLevel,
+                            {
+                                width: `${batteryPercentage}%`,
+                                backgroundColor: batteryColor
+                            }
+                        ]}
                     />
-                ))
-            ) : (
-                <Text style={styles.noContacts}>No contacts found</Text>
+                </View>
+                <View style={styles.batteryCap} />
+            </View>
+
+            <Text style={styles.batteryText}>{batteryPercentage + 2}%</Text>
+
+            <View
+                style={[
+                    styles.statusBox,
+                    charging ? styles.greenBox : styles.redBox
+                ]}>
+                <Text style={styles.statusText}>
+                    {charging ? "⚡ Зарядка..." : "🔌 Не заряжается"}
+                </Text>
+            </View>
+
+            <View
+                style={[
+                    styles.statusBox,
+                    lowPowerMode ? styles.yellowBox : styles.grayBox
+                ]}>
+                <Text style={styles.statusText}>
+                    {lowPowerMode
+                        ? "🛑 Режим энергосбережения ВКЛ"
+                        : "✅ Нормальный режим"}
+                </Text>
+            </View>
+
+            {batteryOptimization !== null && (
+                <View
+                    style={[
+                        styles.statusBox,
+                        batteryOptimization ? styles.redBox : styles.greenBox
+                    ]}>
+                    <Text style={styles.statusText}>
+                        {batteryOptimization
+                            ? "⛔ Оптимизация батареи ВКЛ"
+                            : "✅ Оптимизация батареи ВЫКЛ"}
+                    </Text>
+                </View>
             )}
-        </ScrollView>
+        </View>
     );
 };
-
-export default HomeScreen;
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 40,
+        flex: 1,
+        justifyContent: "center",
         alignItems: "center",
-        justifyContent: "center"
+        backgroundColor: "#121212",
+        padding: 20
     },
-    card: {
-        backgroundColor: "#fff",
-        padding: 15,
-        marginVertical: 8,
+    title: {
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "#FFFFFF",
+        marginBottom: 20
+    },
+    batteryContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 10
+    },
+    batteryBody: {
+        width: 160,
+        height: 60,
+        borderWidth: 4,
+        borderColor: "#FFFFFF",
+        borderRadius: 8,
+        overflow: "hidden",
+        backgroundColor: "#2E2E2E"
+    },
+    batteryLevel: {
+        height: "100%"
+    },
+    batteryCap: {
+        width: 12,
+        height: 25,
+        backgroundColor: "#FFFFFF",
+        marginLeft: 4,
+        borderRadius: 3
+    },
+    batteryText: {
+        fontSize: 26,
+        fontWeight: "bold",
+        color: "#FFFFFF",
+        marginBottom: 20
+    },
+    statusBox: {
         width: "90%",
+        padding: 12,
         borderRadius: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        marginTop: 10,
         alignItems: "center"
     },
-    name: {
+    statusText: {
         fontSize: 18,
-        fontWeight: "600",
-        color: "#333"
+        fontWeight: "bold",
+        color: "#FFFFFF"
     },
-    noContacts: {
-        fontSize: 16,
-        color: "#999",
-        marginTop: 20
-    }
+    greenBox: { backgroundColor: "#008000" },
+    redBox: { backgroundColor: "#B22222" },
+    yellowBox: { backgroundColor: "#FFA500" },
+    grayBox: { backgroundColor: "#808080" }
 });
+
+export default HomeScreen;
