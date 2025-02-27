@@ -27,26 +27,18 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: "Battery status",
+                    title: "Camera",
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="battery.100.circle.fill"
-                            color={color}
-                        />
+                        <IconSymbol size={28} name="camera" color={color} />
                     )
                 }}
             />
             <Tabs.Screen
-                name="volume"
+                name="gallery"
                 options={{
-                    title: "Volume status",
+                    title: "Gallery",
                     tabBarIcon: ({ color }) => (
-                        <IconSymbol
-                            size={28}
-                            name="music.note.list"
-                            color={color}
-                        />
+                        <IconSymbol size={28} name="photo" color={color} />
                     )
                 }}
             />

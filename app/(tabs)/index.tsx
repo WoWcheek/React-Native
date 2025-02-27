@@ -1,171 +1,152 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import * as Battery from "expo-battery";
+import React, { useRef, useState } from "react";
+import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
+import {
+    Text,
+    View,
+    Image,
+    Button,
+    Vibration,
+    StyleSheet,
+    TouchableOpacity
+} from "react-native";
 
-const HomeScreen = () => {
-    const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
-    const [charging, setCharging] = useState<boolean | null>(null);
-    const [lowPowerMode, setLowPowerMode] = useState<boolean | null>(null);
-    const [batteryOptimization, setBatteryOptimization] = useState<
-        boolean | null
-    >(null);
+const CameraScreen = () => {
+    const cameraRef = useRef<CameraView>(null);
 
-    useEffect(() => {
-        const fetchBatteryStatus = async () => {
-            const level = await Battery.getBatteryLevelAsync();
-            const chargingStatus = await Battery.getBatteryStateAsync();
-            const lowPower = await Battery.isLowPowerModeEnabledAsync();
-            const optimization =
-                await Battery.isBatteryOptimizationEnabledAsync();
+    const [facing, setFacing] = useState<CameraType>("back");
+    const [photo, setPhoto] = useState<string | null>(null);
 
-            setBatteryLevel(level);
-            setCharging(chargingStatus === Battery.BatteryState.CHARGING);
-            setLowPowerMode(lowPower);
-            setBatteryOptimization(optimization);
-        };
+    const [mediaPermission, requestMediaPermission] =
+        MediaLibrary.usePermissions();
+    const [permission, requestPermission] = useCameraPermissions();
 
-        fetchBatteryStatus();
+    if (!permission || !mediaPermission) return <View />;
 
-        const subscription = Battery.addBatteryLevelListener(
-            ({ batteryLevel }) => {
-                setBatteryLevel(batteryLevel);
-            }
+    if (!permission.granted) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.message}>
+                    We need your permission to show the camera
+                </Text>
+                <Button
+                    onPress={requestPermission}
+                    title="Grant Camera Permission"
+                />
+            </View>
         );
+    }
 
-        return () => {
-            subscription.remove();
-        };
-    }, []);
+    if (!mediaPermission.granted) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.message}>
+                    We need your permission to save photos
+                </Text>
+                <Button
+                    onPress={requestMediaPermission}
+                    title="Grant Media Permission"
+                />
+            </View>
+        );
+    }
 
-    const batteryPercentage =
-        batteryLevel !== null ? Math.round(batteryLevel * 100) : 0;
-    const batteryColor =
-        batteryPercentage > 50
-            ? "#00FF00"
-            : batteryPercentage > 20
-            ? "#FFA500"
-            : "#FF0000";
+    const toggleCameraFacing = () =>
+        setFacing(current => (current === "back" ? "front" : "back"));
+
+    const takePhoto = async () => {
+        if (!cameraRef.current) return;
+
+        Vibration.vibrate();
+
+        const photo = await cameraRef.current.takePictureAsync();
+        if (!photo) return;
+        setPhoto(photo.uri);
+    };
+
+    async function savePhoto() {
+        if (photo) {
+            await MediaLibrary.saveToLibraryAsync(photo);
+            setPhoto(null);
+        }
+    }
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>🔋 Статус батареи</Text>
-
-            <View style={styles.batteryContainer}>
-                <View style={styles.batteryBody}>
-                    <View
-                        style={[
-                            styles.batteryLevel,
-                            {
-                                width: `${batteryPercentage}%`,
-                                backgroundColor: batteryColor
-                            }
-                        ]}
-                    />
-                </View>
-                <View style={styles.batteryCap} />
-            </View>
-
-            <Text style={styles.batteryText}>{batteryPercentage + 2}%</Text>
-
-            <View
-                style={[
-                    styles.statusBox,
-                    charging ? styles.greenBox : styles.redBox
-                ]}>
-                <Text style={styles.statusText}>
-                    {charging ? "⚡ Зарядка..." : "🔌 Не заряжается"}
-                </Text>
-            </View>
-
-            <View
-                style={[
-                    styles.statusBox,
-                    lowPowerMode ? styles.yellowBox : styles.grayBox
-                ]}>
-                <Text style={styles.statusText}>
-                    {lowPowerMode
-                        ? "🛑 Режим энергосбережения ВКЛ"
-                        : "✅ Нормальный режим"}
-                </Text>
-            </View>
-
-            {batteryOptimization !== null && (
-                <View
-                    style={[
-                        styles.statusBox,
-                        batteryOptimization ? styles.redBox : styles.greenBox
-                    ]}>
-                    <Text style={styles.statusText}>
-                        {batteryOptimization
-                            ? "⛔ Оптимизация батареи ВКЛ"
-                            : "✅ Оптимизация батареи ВЫКЛ"}
-                    </Text>
+            {!photo ? (
+                <CameraView
+                    ref={cameraRef}
+                    style={styles.camera}
+                    facing={facing}>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={toggleCameraFacing}>
+                            <Text style={styles.text}>Flip Camera</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.button}
+                            onPress={takePhoto}>
+                            <Text style={styles.text}>Take Photo</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CameraView>
+            ) : (
+                <View style={styles.preview}>
+                    <Image source={{ uri: photo }} style={styles.image} />
+                    <View style={styles.actions}>
+                        <Button title="Save to Gallery" onPress={savePhoto} />
+                        <Button title="Retake" onPress={() => setPhoto(null)} />
+                    </View>
                 </View>
             )}
         </View>
     );
 };
 
+export default CameraScreen;
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#121212",
-        padding: 20
+        justifyContent: "center"
     },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "#FFFFFF",
-        marginBottom: 20
+    message: {
+        textAlign: "center",
+        paddingBottom: 10
     },
-    batteryContainer: {
+    camera: {
+        flex: 1
+    },
+    buttonContainer: {
+        flex: 1,
         flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10
-    },
-    batteryBody: {
-        width: 160,
-        height: 60,
-        borderWidth: 4,
-        borderColor: "#FFFFFF",
-        borderRadius: 8,
-        overflow: "hidden",
-        backgroundColor: "#2E2E2E"
-    },
-    batteryLevel: {
-        height: "100%"
-    },
-    batteryCap: {
-        width: 12,
-        height: 25,
-        backgroundColor: "#FFFFFF",
-        marginLeft: 4,
-        borderRadius: 3
-    },
-    batteryText: {
-        fontSize: 26,
-        fontWeight: "bold",
-        color: "#FFFFFF",
+        justifyContent: "space-around",
+        alignItems: "flex-end",
         marginBottom: 20
     },
-    statusBox: {
-        width: "90%",
-        padding: 12,
-        borderRadius: 10,
-        marginTop: 10,
+    button: {
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        padding: 10,
+        borderRadius: 5
+    },
+    text: {
+        fontSize: 18,
+        color: "white"
+    },
+    preview: {
+        flex: 1,
+        justifyContent: "center",
         alignItems: "center"
     },
-    statusText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#FFFFFF"
+    image: {
+        width: "100%",
+        height: "80%"
     },
-    greenBox: { backgroundColor: "#008000" },
-    redBox: { backgroundColor: "#B22222" },
-    yellowBox: { backgroundColor: "#FFA500" },
-    grayBox: { backgroundColor: "#808080" }
+    actions: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        width: "100%",
+        marginTop: 10
+    }
 });
-
-export default HomeScreen;
