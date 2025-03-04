@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
     View,
     Text,
@@ -7,16 +7,14 @@ import {
     TouchableOpacity
 } from "react-native";
 import { BACKEND_URL } from "@/environment/development";
-import { AuthContext, AuthProvider } from "@/context/AuthContext";
 import { useNavigation } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthScreen = () => {
     const navigator = useNavigation();
 
-    const { setToken } = useContext(AuthContext);
-
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("test");
+    const [password, setPassword] = useState("test");
     const [isSignUp, setIsSignUp] = useState(false);
 
     const handleAuth = async () => {
@@ -33,7 +31,10 @@ const AuthScreen = () => {
 
             const data = await response.json();
 
-            setToken(data?.token);
+            await AsyncStorage.setItem(
+                "user",
+                JSON.stringify({ id: data.id, token: data.token })
+            );
 
             setUsername("");
             setPassword("");
@@ -51,38 +52,34 @@ const AuthScreen = () => {
     };
 
     return (
-        <AuthProvider>
-            <View style={styles.container}>
-                <Text style={styles.title}>
+        <View style={styles.container}>
+            <Text style={styles.title}>{isSignUp ? "Sign Up" : "Sign In"}</Text>
+            <TextInput
+                style={styles.input}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+            />
+            <TextInput
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+            />
+            <TouchableOpacity style={styles.button} onPress={handleAuth}>
+                <Text style={styles.buttonText}>
                     {isSignUp ? "Sign Up" : "Sign In"}
                 </Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Username"
-                    value={username}
-                    onChangeText={setUsername}
-                />
-                <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    secureTextEntry
-                    value={password}
-                    onChangeText={setPassword}
-                />
-                <TouchableOpacity style={styles.button} onPress={handleAuth}>
-                    <Text style={styles.buttonText}>
-                        {isSignUp ? "Sign Up" : "Sign In"}
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
-                    <Text style={styles.toggleText}>
-                        {isSignUp
-                            ? "Already have an account? Sign In"
-                            : "Don't have an account? Sign Up"}
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        </AuthProvider>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
+                <Text style={styles.toggleText}>
+                    {isSignUp
+                        ? "Already have an account? Sign In"
+                        : "Don't have an account? Sign Up"}
+                </Text>
+            </TouchableOpacity>
+        </View>
     );
 };
 
