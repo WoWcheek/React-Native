@@ -4,11 +4,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import KnifeCard from "@/components/knives/KnifeCard";
 import { BACKEND_URL } from "@/environment/development";
 import { type Knife } from "@/models/Knife";
-import { useNavigation } from "expo-router";
+import EmptyFallback from "@/components/knives/EmptyFallback";
 
 const CartScreen = () => {
-    const navigator = useNavigation();
-
     const [knives, setKnives] = useState<Knife[]>([]);
     const [amounts, setAmounts] = useState<number[]>([]);
 
@@ -17,11 +15,8 @@ const CartScreen = () => {
             const value = await AsyncStorage.getItem("user");
             const userInfo = value != null ? JSON.parse(value) : null;
 
-            if (!userInfo || !userInfo.token) {
-                alert("Sign in to view cart!");
-                navigator.navigate("index");
-                return;
-            }
+            if (!userInfo || !userInfo.token)
+                return <EmptyFallback text="Sign in to view cart!" />;
 
             try {
                 const response = await fetch(
@@ -38,9 +33,8 @@ const CartScreen = () => {
 
                 setKnives(firstItems);
                 setAmounts(secondItems);
-            } catch (error) {
-                alert("Cart is unavailable!");
-                navigator.navigate("index");
+            } catch {
+                return <EmptyFallback text="Your cart is empty..." />;
             }
         };
 
@@ -49,9 +43,17 @@ const CartScreen = () => {
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-            {knives.map((knife, i) => (
-                <KnifeCard knife={knife} key={knife.id} amount={amounts[i]} />
-            ))}
+            {knives?.length ? (
+                knives.map((knife, i) => (
+                    <KnifeCard
+                        knife={knife}
+                        key={knife.id}
+                        amount={amounts[i]}
+                    />
+                ))
+            ) : (
+                <EmptyFallback text="Your cart is empty..." />
+            )}
         </ScrollView>
     );
 };

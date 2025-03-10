@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -6,18 +6,36 @@ import {
     StyleSheet,
     TouchableOpacity
 } from "react-native";
-import { BACKEND_URL } from "@/environment/development";
+import { User } from "@/models/User";
 import { useNavigation } from "expo-router";
+import { BACKEND_URL } from "@/environment/development";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Gallery from "@/components/Camera+Gallery/Gallery";
 
 const AuthScreen = () => {
     const navigator = useNavigation();
 
-    const [username, setUsername] = useState("test");
-    const [password, setPassword] = useState("test");
+    const [userInfo, setUserInfo] = useState<User | null>(null);
+
+    const [username, setUsername] = useState("user");
+    const [password, setPassword] = useState("user");
     const [isSignUp, setIsSignUp] = useState(false);
 
-    const handleAuth = async () => {
+    useEffect(() => {
+        const checkUser = async () => {
+            const storedUser = await AsyncStorage.getItem("user");
+            setUserInfo(storedUser ? JSON.parse(storedUser) : null);
+        };
+
+        checkUser();
+    }, []);
+
+    const handleAuth = async (isAdmin = false) => {
+        if (username.trim().length < 4 || password.trim().length < 4) {
+            alert("Username and password should contain at least 4 symbols!");
+            return;
+        }
+
         const endpoint =
             BACKEND_URL +
             (isSignUp ? "authorization/signup" : "authorization/signin");
@@ -26,15 +44,24 @@ const AuthScreen = () => {
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password, role: +isAdmin })
             });
 
-            const data = await response.json();
+            if (!response.ok) {
+                alert("Invalid username or password!");
+                return;
+            }
 
-            await AsyncStorage.setItem(
-                "user",
-                JSON.stringify({ id: data.id, token: data.token })
-            );
+            const data = await response.json();
+            const newUser: User = {
+                id: data.id,
+                role: data.role,
+                token: data.token,
+                avatar: data.avatar,
+                username: data.username
+            };
+            await AsyncStorage.setItem("user", JSON.stringify(newUser));
+            setUserInfo(newUser);
 
             setUsername("");
             setPassword("");
@@ -44,12 +71,36 @@ const AuthScreen = () => {
                 setIsSignUp(false);
             } else {
                 alert("Successfully signed in!");
-                navigator.navigate("knives");
+                navigator.navigate("KnivesScreen");
             }
         } catch (error) {
             console.error(error);
         }
     };
+
+    const handleLogout = async () => {
+        await AsyncStorage.removeItem("user");
+        setUserInfo(null);
+    };
+
+    if (userInfo) {
+        return (
+            <View style={styles.container}>
+                <Gallery
+                    token={userInfo.token}
+                    image={userInfo.avatar}
+                    username={userInfo.username}
+                />
+                <Text style={styles.title}>Hi, {userInfo.username}!</Text>
+                <Text style={styles.subTitle}>You are logged in!</Text>
+                <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={handleLogout}>
+                    <Text style={styles.buttonText}>Log out</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -67,11 +118,28 @@ const AuthScreen = () => {
                 value={password}
                 onChangeText={setPassword}
             />
-            <TouchableOpacity style={styles.button} onPress={handleAuth}>
-                <Text style={styles.buttonText}>
-                    {isSignUp ? "Sign Up" : "Sign In"}
-                </Text>
-            </TouchableOpacity>
+            {isSignUp ? (
+                <View style={styles.signupButtons}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => handleAuth(false)}>
+                        <Text style={styles.buttonText}>Sign Up as User</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => handleAuth(true)}>
+                        <Text style={styles.buttonText}>Sign Up as Admin</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View style={styles.signupButtons}>
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={() => handleAuth()}>
+                        <Text style={styles.buttonText}>Sign In</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
             <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)}>
                 <Text style={styles.toggleText}>
                     {isSignUp
@@ -91,6 +159,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f8f9fa"
     },
     title: { fontSize: 24, fontWeight: "bold", marginBottom: 20 },
+    subTitle: { fontSize: 20, marginBottom: 20 },
     input: {
         width: "80%",
         padding: 10,
@@ -99,9 +168,23 @@ const styles = StyleSheet.create({
         borderRadius: 5,
         backgroundColor: "white"
     },
+    signupButtons: {
+        width: "82.5%",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10
+    },
     button: {
         backgroundColor: "#007bff",
         padding: 10,
+        borderRadius: 5,
+        flex: 1,
+        marginHorizontal: 5,
+        alignItems: "center"
+    },
+    logoutButton: {
+        backgroundColor: "#dc3545",
+        padding: 15,
         borderRadius: 5,
         width: "80%",
         alignItems: "center"

@@ -77,7 +77,7 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
                 </View>
                 <Image
                     source={{
-                        uri: `data:image/png;base64,${knife.images[0]}`
+                        uri: `data:image/png;base64${knife.images[0]}`
                     }}
                     style={styles.image}
                 />

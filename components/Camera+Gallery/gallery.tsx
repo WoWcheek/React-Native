@@ -1,42 +1,84 @@
 import { useState } from "react";
-import { Button, Image, View, StyleSheet } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { BACKEND_URL } from "@/environment/development";
 
-export default function GalleryScreen() {
-    const [image, setImage] = useState<string | null>(null);
+const AvatarPicker = ({
+    image,
+    token,
+    username
+}: {
+    image?: string;
+    token?: string;
+    username?: string;
+}) => {
+    const [avatar, setAvatar] = useState(
+        image ? { uri: image } : require("@/assets/images/default-avatar.png")
+    );
 
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ["images", "videos"],
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [4, 3],
+            aspect: [1, 1],
             quality: 1
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri);
+            console.log(
+                JSON.stringify({
+                    username,
+                    token,
+                    avatar: result.assets[0].uri
+                })
+            );
+
+            const response = await fetch(BACKEND_URL + "authorization/avatar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    token,
+                    avatar: result.assets[0].uri
+                })
+            });
+
+            if (!response.ok) {
+                alert("Can't set that image as avatar!");
+                return;
+            }
+
+            setAvatar({ uri: result.assets[0].uri });
         }
     };
 
     return (
         <View style={styles.container}>
-            <Button
-                title="Pick an image from camera roll"
-                onPress={pickImage}
-            />
-            {image && <Image source={{ uri: image }} style={styles.image} />}
+            <TouchableOpacity onPress={pickImage}>
+                <Image source={avatar} style={styles.avatar} />
+            </TouchableOpacity>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center"
+        height: 300,
+        justifyContent: "center",
+        alignItems: "center"
     },
-    image: {
-        width: 200,
-        height: 200
+    avatar: {
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        borderWidth: 2,
+        borderColor: "#ccc"
+    },
+    text: {
+        marginTop: 10,
+        fontSize: 16,
+        color: "#555"
     }
 });
+
+export default AvatarPicker;

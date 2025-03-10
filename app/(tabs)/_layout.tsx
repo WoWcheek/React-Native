@@ -1,14 +1,27 @@
 import { Tabs } from "expo-router";
-import React from "react";
+import { User } from "@/models/User";
 import { Platform } from "react-native";
+import { Colors } from "@/constants/Colors";
+import { useEffect, useState } from "react";
 import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import TabBarBackground from "@/components/ui/TabBarBackground";
-import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function TabLayout() {
     const colorScheme = useColorScheme();
+    const [user, setUser] = useState<User | null>(null);
+
+    useEffect(() => {
+        const getUserInfo = async () => {
+            const value = await AsyncStorage.getItem("user");
+            const userInfo = value != null ? JSON.parse(value) : null;
+            if (userInfo) setUser(userInfo);
+        };
+
+        getUserInfo();
+    }, []);
 
     return (
         <Tabs
@@ -27,7 +40,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: "Login",
+                    title: "Account",
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}
@@ -38,7 +51,7 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="knives"
+                name="KnivesScreen"
                 options={{
                     title: "Knives",
                     tabBarIcon: ({ color }) => (
@@ -51,7 +64,7 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
-                name="cart"
+                name="CartScreen"
                 options={{
                     title: "Cart",
                     tabBarIcon: ({ color }) => (
