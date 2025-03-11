@@ -1,49 +1,42 @@
 import { useEffect, useState } from "react";
 import {
-    View,
     Text,
-    TextInput,
-    Button,
-    FlatList,
-    Image,
-    StyleSheet,
+    View,
     Alert,
-    TouchableOpacity,
-    ScrollView
+    Image,
+    Button,
+    TextInput,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity
 } from "react-native";
-import { BACKEND_URL } from "@/environment/development";
+import KnifeRow from "./KnifeRow";
+import { Knife } from "@/models/Knife";
+import ImageUploader from "./ImageUploader";
 import { MaterialIcons } from "@expo/vector-icons";
-import ImageUploader from "./ImageUploader"; // Assuming ImageUploader is in the same folder
-
-const allowedHandleMaterials = [
-    "wood",
-    "plastic",
-    "metal",
-    "rubber",
-    "carbon_fiber"
-];
-
-const allowedSteelTypes = [
-    "stainless_steel",
-    "damascus",
-    "carbon_steel",
-    "titanium",
-    "ceramic"
-];
+import { BACKEND_URL } from "@/environment/development";
+import { allowedSteelTypes } from "@/constants/SteelTypes";
+import { allowedHandleMaterials } from "@/constants/HandleMaterials";
 
 const KnivesAdminPanel = () => {
-    const [knives, setKnives] = useState([]);
+    const [knives, setKnives] = useState<Knife[]>([]);
+
     const [name, setName] = useState("");
+    const [brand, setBrand] = useState("");
     const [price, setPrice] = useState("");
     const [amount, setAmount] = useState("");
-    const [brand, setBrand] = useState("");
-    const [bladeLength, setBladeLength] = useState("");
     const [weight, setWeight] = useState("");
-    const [handleMaterial, setHandleMaterial] = useState("");
     const [steelType, setSteelType] = useState("");
     const [description, setDescription] = useState("");
+    const [bladeLength, setBladeLength] = useState("");
+    const [handleMaterial, setHandleMaterial] = useState("");
+
     const [imagesStrs, setImageStrs] = useState<string[]>([]);
+
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isEditingMode, setIsEditingMode] = useState(false);
+
+    const [knifeToEditId, setKnifeToEditId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchKnives();
@@ -59,6 +52,22 @@ const KnivesAdminPanel = () => {
         }
     };
 
+    const resetForm = () => {
+        setName("");
+        setBrand("");
+        setPrice("");
+        setAmount("");
+        setWeight("");
+        setImageStrs([]);
+        setSteelType("");
+        setBladeLength("");
+        setDescription("");
+        setIsExpanded(false);
+        setHandleMaterial("");
+        setKnifeToEditId(null);
+        setIsEditingMode(false);
+    };
+
     const handleChange = (
         text: string,
         setter: React.Dispatch<React.SetStateAction<string>>,
@@ -67,7 +76,7 @@ const KnivesAdminPanel = () => {
         if (
             !allowedValues ||
             allowedValues.some((x: string) =>
-                x.startsWith(text.replaceAll(" ", "_"))
+                x.startsWith(text.toLocaleLowerCase().replaceAll(" ", "_"))
             )
         ) {
             setter(text);
@@ -82,7 +91,11 @@ const KnivesAdminPanel = () => {
     };
 
     const handleSubmit = async () => {
-        if (!allowedSteelTypes.includes(steelType.replaceAll(" ", "_"))) {
+        if (
+            !allowedSteelTypes.includes(
+                steelType.toLocaleLowerCase().replaceAll(" ", "_")
+            )
+        ) {
             Alert.alert(
                 "Invalid Steel Type Value",
                 `Allowed values: ${allowedSteelTypes
@@ -94,7 +107,7 @@ const KnivesAdminPanel = () => {
 
         if (
             !allowedHandleMaterials.includes(
-                handleMaterial.replaceAll(" ", "_")
+                handleMaterial.toLocaleLowerCase().replaceAll(" ", "_")
             )
         ) {
             Alert.alert(
@@ -106,25 +119,99 @@ const KnivesAdminPanel = () => {
             return;
         }
 
-        const response = await fetch(BACKEND_URL + "knives/", {
+        const response = isEditingMode
+            ? await sendEditRequest()
+            : await sendAddRequest();
+
+        if (!response.ok) {
+            alert("Invalid knife data!");
+            return;
+        }
+
+        resetForm();
+        fetchKnives();
+    };
+
+    const sendAddRequest = async () => {
+        return await fetch(BACKEND_URL + "knives/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name,
                 brand,
-                price,
                 amount,
                 weight,
                 description,
                 images: imagesStrs,
-                steel_type: steelType,
                 blade_length: bladeLength,
+                price: price.replace(",", "."),
                 handle_material: handleMaterial
+                    .toLocaleLowerCase()
+                    .replaceAll(" ", "_"),
+                steel_type: steelType.toLocaleLowerCase().replaceAll(" ", "_")
             })
+        });
+    };
+
+    const sendEditRequest = async () => {
+        return await fetch(BACKEND_URL + "knives/" + knifeToEditId, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name,
+                brand,
+                amount,
+                weight,
+                description,
+                images: imagesStrs,
+                blade_length: bladeLength,
+                price: price.replace(",", "."),
+                handle_material: handleMaterial
+                    .toLocaleLowerCase()
+                    .replaceAll(" ", "_"),
+                steel_type: steelType.toLocaleLowerCase().replaceAll(" ", "_")
+            })
+        });
+    };
+
+    const handleEdit = async (id: number) => {
+        const knifeToEdit = knives.find(x => x.id === id);
+
+        if (!knifeToEdit) {
+            Alert.alert("Invalid knife id", `Can't find a knife # ${id}`);
+            return;
+        }
+
+        setIsExpanded(true);
+        setIsEditingMode(true);
+
+        setImageStrs([]);
+        setName(knifeToEdit.name);
+        setBrand(knifeToEdit.brand);
+        setSteelType(knifeToEdit.steel_type);
+        setPrice(knifeToEdit.price.toString());
+        setDescription(knifeToEdit.description);
+        setAmount(knifeToEdit.amount.toString());
+        setWeight(knifeToEdit.weight.toString());
+        setHandleMaterial(knifeToEdit.handle_material);
+        setBladeLength(knifeToEdit.blade_length.toString());
+
+        setKnifeToEditId(id);
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!knives.some(x => x.id === id)) {
+            Alert.alert("Invalid knife id", `Can't delete a knife # ${id}`);
+            return;
+        }
+
+        const response = await fetch(BACKEND_URL + "knives/" + id, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" }
         });
 
         if (!response.ok) {
-            alert("Invalid knife data!");
+            Alert.alert("Invalid knife id!");
             return;
         }
 
@@ -241,21 +328,21 @@ const KnivesAdminPanel = () => {
                         setImages={setImageStrs}
                     />
 
-                    <Button title="Add Knife" onPress={handleSubmit} />
+                    <Button
+                        title={isEditingMode ? "Edit Knife" : "Add Knife"}
+                        onPress={handleSubmit}
+                    />
                 </View>
             )}
 
             <ScrollView style={styles.knifeList}>
-                {knives.map(item => (
-                    <View key={item.id} style={styles.knifeItem}>
-                        <Image
-                            source={{ uri: item.images[0] }}
-                            style={styles.image}
-                        />
-                        <Text>{item.name}</Text>
-                        <Button title="Edit" onPress={() => {}} />
-                        <Button title="Delete" onPress={() => {}} />
-                    </View>
+                {knives.map((x: Knife) => (
+                    <KnifeRow
+                        knife={x}
+                        key={x.id}
+                        handleEdit={handleEdit}
+                        handleDelete={handleDelete}
+                    />
                 ))}
             </ScrollView>
         </View>
@@ -300,15 +387,7 @@ const styles = StyleSheet.create({
     knifeList: {
         marginTop: 10,
         maxHeight: 300
-    },
-    knifeItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: 10,
-        borderBottomWidth: 1
-    },
-    image: { width: 50, height: 50, marginRight: 10 }
+    }
 });
 
 export default KnivesAdminPanel;

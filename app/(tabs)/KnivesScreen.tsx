@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { User } from "@/models/User";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Text } from "react-native";
 import KnivesList from "@/components/knives/KnivesList";
 import { useFocusEffect } from "@react-navigation/native";
 import KnivesAdminPanel from "@/components/knives/KnivesAdminPanel";

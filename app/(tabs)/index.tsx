@@ -17,8 +17,8 @@ const AuthScreen = () => {
 
     const [userInfo, setUserInfo] = useState<User | null>(null);
 
-    const [username, setUsername] = useState("user");
-    const [password, setPassword] = useState("user");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
     const [isSignUp, setIsSignUp] = useState(false);
 
     useEffect(() => {
@@ -70,7 +70,6 @@ const AuthScreen = () => {
                 alert("Successfully signed up! Please sign in.");
                 setIsSignUp(false);
             } else {
-                alert("Successfully signed in!");
                 navigator.navigate("KnivesScreen");
             }
         } catch (error) {

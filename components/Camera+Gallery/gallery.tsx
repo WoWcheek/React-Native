@@ -25,14 +25,6 @@ const AvatarPicker = ({
         });
 
         if (!result.canceled) {
-            console.log(
-                JSON.stringify({
-                    username,
-                    token,
-                    avatar: result.assets[0].uri
-                })
-            );
-
             const response = await fetch(BACKEND_URL + "authorization/avatar", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

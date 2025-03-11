@@ -10,6 +10,7 @@ import { useNavigation } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { type Knife } from "@/models/Knife";
 import { BACKEND_URL } from "@/environment/development";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
     const navigator = useNavigation();
@@ -17,9 +18,9 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
     const handleAddToCart = async () => {
         try {
             const value = await AsyncStorage.getItem("user");
-            const userInfo = value != null ? JSON.parse(value) : null;
+            const userInfo = value ? JSON.parse(value) : null;
 
-            if (!userInfo || !userInfo.token) {
+            if (!userInfo?.token) {
                 alert("Sign in to add items to cart!");
                 navigator.navigate("index");
                 return;
@@ -72,13 +73,11 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
             <View style={styles.topSection}>
                 <View style={styles.textContainer}>
                     <Text style={styles.name}>{knife.name}</Text>
-                    <Text style={styles.price}>{knife.price} $</Text>
-                    <Text style={styles.brand}>Brand: {knife.brand}</Text>
+                    <Text style={styles.price}>${knife.price}</Text>
+                    <Text style={styles.brand}>{knife.brand}</Text>
                 </View>
                 <Image
-                    source={{
-                        uri: `data:image/png;base64${knife.images[0]}`
-                    }}
+                    source={{ uri: `data:image/png;base64${knife.images[0]}` }}
                     style={styles.image}
                 />
             </View>
@@ -94,15 +93,18 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
                     Steel: {knife.steel_type.replace("_", " ")}
                 </Text>
             </View>
-            <Text style={styles.description}>
-                Description: {knife.description}
-            </Text>
+            <Text style={styles.description}>{knife.description}</Text>
             {amount ? (
                 <Text style={styles.count}>{amount} items</Text>
             ) : (
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={handleAddToCart}>
+                    <MaterialIcons
+                        name="shopping-cart"
+                        size={20}
+                        color="white"
+                    />
                     <Text style={styles.addButtonText}>Add to Cart</Text>
                 </TouchableOpacity>
             )}
@@ -114,14 +116,14 @@ export default KnifeCard;
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: "white",
-        padding: 20,
-        marginVertical: 15,
-        borderRadius: 10,
+        backgroundColor: "#fff",
+        padding: 16,
+        marginVertical: 12,
+        borderRadius: 12,
         shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowRadius: 6,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 3 },
         elevation: 3,
         width: "90%",
         alignSelf: "center"
@@ -130,41 +132,66 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 15
+        marginBottom: 12
     },
-    textContainer: { flex: 1, marginRight: 10 },
-    image: { width: 120, height: 120, borderRadius: 8 },
+    textContainer: {
+        flex: 1,
+        marginRight: 12
+    },
+    image: {
+        width: 120,
+        height: 120,
+        borderRadius: 10
+    },
     count: {
-        fontSize: 20,
-        fontWeight: "bold",
-        marginBottom: 5,
-        alignSelf: "flex-end"
+        fontSize: 18,
+        fontWeight: "600",
+        color: "#444",
+        alignSelf: "flex-end",
+        marginTop: 8
     },
-    name: { fontSize: 20, fontWeight: "bold", marginBottom: 5 },
-    price: {
+    name: {
         fontSize: 18,
         fontWeight: "bold",
-        color: "green",
-        marginBottom: 5
+        color: "#333",
+        marginBottom: 4
     },
-    brand: { fontSize: 16, color: "gray" },
-    detailsContainer: { marginTop: 10 },
-    details: { fontSize: 14, color: "gray", marginBottom: 4 },
+    price: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#28a745",
+        marginBottom: 2
+    },
+    brand: {
+        fontSize: 14,
+        color: "#555"
+    },
+    detailsContainer: {
+        marginTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: "#ddd",
+        paddingTop: 8
+    },
+    details: {
+        fontSize: 14,
+        color: "#666",
+        marginBottom: 2
+    },
     description: {
         fontSize: 14,
-        color: "gray",
-        marginVertical: 10,
-        paddingTop: 10,
-        borderTopWidth: 1,
-        borderTopColor: "lightgray"
+        color: "#555",
+        marginTop: 10,
+        lineHeight: 18
     },
     addButton: {
-        marginTop: 15,
+        marginTop: 12,
         backgroundColor: "#007bff",
-        padding: 12,
+        paddingVertical: 10,
         borderRadius: 8,
+        flexDirection: "row",
         alignItems: "center",
-        width: "100%"
+        justifyContent: "center",
+        gap: 8
     },
     addButtonText: {
         color: "white",
