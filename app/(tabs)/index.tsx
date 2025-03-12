@@ -13,8 +13,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Gallery from "@/components/Camera+Gallery/Gallery";
 
 const AuthScreen = () => {
-    const navigator = useNavigation();
-
     const [userInfo, setUserInfo] = useState<User | null>(null);
 
     const [username, setUsername] = useState("");
@@ -48,7 +46,7 @@ const AuthScreen = () => {
             });
 
             if (!response.ok) {
-                alert("Invalid username or password!");
+                alert("User already exists!");
                 return;
             }
 
@@ -66,12 +64,7 @@ const AuthScreen = () => {
             setUsername("");
             setPassword("");
 
-            if (isSignUp) {
-                alert("Successfully signed up! Please sign in.");
-                setIsSignUp(false);
-            } else {
-                navigator.navigate("KnivesScreen");
-            }
+            setIsSignUp(false);
         } catch (error) {
             console.error(error);
         }
@@ -109,6 +102,7 @@ const AuthScreen = () => {
                 placeholder="Username"
                 value={username}
                 onChangeText={setUsername}
+                placeholderTextColor="gray"
             />
             <TextInput
                 style={styles.input}
@@ -116,6 +110,7 @@ const AuthScreen = () => {
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
+                placeholderTextColor="gray"
             />
             {isSignUp ? (
                 <View style={styles.signupButtons}>

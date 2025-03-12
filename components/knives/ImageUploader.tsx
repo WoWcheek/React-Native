@@ -15,31 +15,14 @@ const ImageUploader = ({
             quality: 1
         });
 
-        if (!result.canceled && images.length < 3) {
+        if (!result.canceled) {
             const selectedImage = result.assets[0];
-            const base64 = await convertToBase64(selectedImage.uri);
-
-            setImages(x => [...x, base64]);
-        } else {
-            alert("You can upload a maximum of 3 images.");
+            setImages(x => [selectedImage.uri]);
         }
-    };
-
-    const convertToBase64 = async (uri: string) => {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        const reader = new FileReader();
-
-        return new Promise<string>((resolve, reject) => {
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
     };
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Upload Images (up to 3)</Text>
             <View style={styles.imageContainer}>
                 {images.map((image, index) => (
                     <Image

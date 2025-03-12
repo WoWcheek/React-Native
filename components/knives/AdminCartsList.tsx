@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import OrderRow from "./OrderRow";
 import { Order } from "@/models/Order";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { BACKEND_URL } from "@/environment/development";
 import EmptyFallback from "./EmptyFallback";
+import { useFocusEffect } from "@react-navigation/native";
 
 const AdminCartsList = () => {
     const [carts, setCarts] = useState<Order[]>([]);
 
-    useEffect(() => {
-        fetchCarts();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchCarts();
+        }, [])
+    );
 
     const fetchCarts = async () => {
         try {
@@ -27,8 +30,11 @@ const AdminCartsList = () => {
             const response = await fetch(BACKEND_URL + "orders/" + id, {
                 method: "DELETE"
             });
-            const data = await response.json();
-            setCarts(data.orders);
+
+            if (!response.ok) {
+                alert("Error deleting order!");
+                return;
+            }
         } catch (error) {
             console.error("Error fetching orders:", error);
         }
@@ -42,10 +48,10 @@ const AdminCartsList = () => {
 
             <ScrollView style={styles.knifeList}>
                 {carts?.length ? (
-                    carts.map((x: Order) => (
+                    carts.map((x: Order, i) => (
                         <OrderRow
                             order={x}
-                            key={x.id}
+                            key={i}
                             handleDelete={handleDelete}
                         />
                     ))
@@ -66,35 +72,13 @@ const styles = StyleSheet.create({
         marginBottom: 20
     },
     title: { fontSize: 24, fontWeight: "bold" },
-    formContainer: { marginBottom: 20 },
     row: {
         flexDirection: "row",
         justifyContent: "space-between",
         marginBottom: 10
     },
-    input: {
-        borderWidth: 1,
-        padding: 10,
-        borderRadius: 5,
-        backgroundColor: "white",
-        width: "48%",
-        fontSize: 16,
-        color: "#000",
-        paddingLeft: 8
-    },
-    inputFull: {
-        borderWidth: 1,
-        padding: 10,
-        borderRadius: 5,
-        backgroundColor: "white",
-        width: "100%",
-        fontSize: 16,
-        color: "#000",
-        paddingLeft: 8
-    },
     knifeList: {
-        marginTop: 10,
-        maxHeight: 300
+        marginTop: 10
     }
 });
 

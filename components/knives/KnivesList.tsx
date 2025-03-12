@@ -2,23 +2,26 @@ import { ScrollView, StyleSheet } from "react-native";
 import KnifeCard from "./KnifeCard";
 import EmptyFallback from "./EmptyFallback";
 import { BACKEND_URL } from "@/environment/development";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Knife } from "@/models/Knife";
+import { useFocusEffect } from "@react-navigation/native";
 
 const KnivesList = () => {
     const [knives, setKnives] = useState<Knife[]>([]);
 
-    useEffect(() => {
-        const fetchKnives = async () => {
-            try {
-                const response = await fetch(BACKEND_URL + "knives");
-                const data = await response.json();
-                setKnives(data.knives);
-            } catch (error) {}
-        };
+    useFocusEffect(
+        useCallback(() => {
+            const fetchKnives = async () => {
+                try {
+                    const response = await fetch(BACKEND_URL + "knives");
+                    const data = await response.json();
+                    setKnives(data?.knives ?? []);
+                } catch (error) {}
+            };
 
-        fetchKnives();
-    }, []);
+            fetchKnives();
+        }, [])
+    );
 
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer}>

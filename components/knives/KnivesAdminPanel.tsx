@@ -3,7 +3,6 @@ import {
     Text,
     View,
     Alert,
-    Image,
     Button,
     TextInput,
     StyleSheet,
@@ -17,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { BACKEND_URL } from "@/environment/development";
 import { allowedSteelTypes } from "@/constants/SteelTypes";
 import { allowedHandleMaterials } from "@/constants/HandleMaterials";
+import EmptyFallback from "./EmptyFallback";
 
 const KnivesAdminPanel = () => {
     const [knives, setKnives] = useState<Knife[]>([]);
@@ -52,7 +52,7 @@ const KnivesAdminPanel = () => {
         }
     };
 
-    const resetForm = () => {
+    const resetForm = (hide: boolean) => {
         setName("");
         setBrand("");
         setPrice("");
@@ -62,7 +62,7 @@ const KnivesAdminPanel = () => {
         setSteelType("");
         setBladeLength("");
         setDescription("");
-        setIsExpanded(false);
+        hide && setIsExpanded(false);
         setHandleMaterial("");
         setKnifeToEditId(null);
         setIsEditingMode(false);
@@ -119,6 +119,36 @@ const KnivesAdminPanel = () => {
             return;
         }
 
+        if (name.trim().length < 4) {
+            alert("Knife name should contain at least 4 symbols!");
+            return;
+        }
+
+        if (brand.trim().length < 3) {
+            alert("Knife brand should contain at least 3 symbols!");
+            return;
+        }
+
+        if (!weight || +weight < 1) {
+            alert("Knife weight should be an integer greater than 0.");
+            return;
+        }
+
+        if (!bladeLength || +bladeLength < 1) {
+            alert("Knife blade length should be an integer greater than 0.");
+            return;
+        }
+
+        if (!price || +price < 0.01) {
+            alert("Knife price should be greater than 0.");
+            return;
+        }
+
+        if (imagesStrs.length < 1) {
+            alert("Please upload an image!");
+            return;
+        }
+
         const response = isEditingMode
             ? await sendEditRequest()
             : await sendAddRequest();
@@ -128,7 +158,7 @@ const KnivesAdminPanel = () => {
             return;
         }
 
-        resetForm();
+        resetForm(true);
         fetchKnives();
     };
 
@@ -139,11 +169,11 @@ const KnivesAdminPanel = () => {
             body: JSON.stringify({
                 name,
                 brand,
-                amount,
-                weight,
+                amount: 1000,
+                weight: Math.floor(+weight),
                 description,
                 images: imagesStrs,
-                blade_length: bladeLength,
+                blade_length: Math.floor(+bladeLength),
                 price: price.replace(",", "."),
                 handle_material: handleMaterial
                     .toLocaleLowerCase()
@@ -235,10 +265,19 @@ const KnivesAdminPanel = () => {
                 <View style={styles.formContainer}>
                     <View style={styles.row}>
                         <TextInput
-                            style={styles.input}
+                            style={styles.inputFull}
                             placeholder="Name"
                             value={name}
                             onChangeText={setName}
+                            placeholderTextColor="gray"
+                        />
+                    </View>
+                    <View style={styles.row}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Brand"
+                            value={brand}
+                            onChangeText={setBrand}
                             placeholderTextColor="gray"
                         />
                         <TextInput
@@ -247,23 +286,6 @@ const KnivesAdminPanel = () => {
                             keyboardType="numeric"
                             value={price}
                             onChangeText={setPrice}
-                            placeholderTextColor="gray"
-                        />
-                    </View>
-                    <View style={styles.row}>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Amount in stock"
-                            keyboardType="numeric"
-                            value={amount}
-                            onChangeText={setAmount}
-                            placeholderTextColor="gray"
-                        />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Brand"
-                            value={brand}
-                            onChangeText={setBrand}
                             placeholderTextColor="gray"
                         />
                     </View>
@@ -328,22 +350,36 @@ const KnivesAdminPanel = () => {
                         setImages={setImageStrs}
                     />
 
-                    <Button
-                        title={isEditingMode ? "Edit Knife" : "Add Knife"}
-                        onPress={handleSubmit}
-                    />
+                    <View
+                        style={{
+                            flexDirection: "row",
+                            justifyContent: "space-evenly"
+                        }}>
+                        <Button
+                            title="Clear form"
+                            onPress={() => resetForm(false)}
+                        />
+                        <Button
+                            title={isEditingMode ? "Edit Knife" : "Add Knife"}
+                            onPress={handleSubmit}
+                        />
+                    </View>
                 </View>
             )}
 
             <ScrollView style={styles.knifeList}>
-                {knives.map((x: Knife) => (
-                    <KnifeRow
-                        knife={x}
-                        key={x.id}
-                        handleEdit={handleEdit}
-                        handleDelete={handleDelete}
-                    />
-                ))}
+                {knives?.length ? (
+                    knives.map((x: Knife) => (
+                        <KnifeRow
+                            knife={x}
+                            key={x.id}
+                            handleEdit={handleEdit}
+                            handleDelete={handleDelete}
+                        />
+                    ))
+                ) : (
+                    <EmptyFallback text="No knives in the store..." />
+                )}
             </ScrollView>
         </View>
     );
@@ -385,8 +421,7 @@ const styles = StyleSheet.create({
         paddingLeft: 8
     },
     knifeList: {
-        marginTop: 10,
-        maxHeight: 300
+        marginTop: 10
     }
 });
 

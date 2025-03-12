@@ -11,7 +11,14 @@ const OrderRow = ({
 }) => {
     return (
         <View style={styles.knifeItem}>
-            <Image source={{ uri: order.user.avatar }} style={styles.image} />
+            <Image
+                source={
+                    order.user.avatar
+                        ? { uri: order.user.avatar }
+                        : require("@/assets/images/default-avatar.png")
+                }
+                style={styles.image}
+            />
             <View style={styles.textContainer}>
                 <View style={{ flexDirection: "row" }}>
                     <Text style={styles.name}>{order.user.username} - </Text>
@@ -23,9 +30,10 @@ const OrderRow = ({
                         {order.is_payed ? "Paid" : "Not paid"}
                     </Text>
                 </View>
-                <Text style={styles.brand}>
-                    {order.items.map(x => `${x[1]}x ${x[0]}`)}
-                </Text>
+
+                {order.items.map(x => (
+                    <Text style={styles.brand}>{`${x[1]}x ${x[0]}`}</Text>
+                ))}
             </View>
             <View style={styles.actions}>
                 <TouchableOpacity

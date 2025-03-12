@@ -48,7 +48,7 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
                                 },
                                 body: JSON.stringify({
                                     user_id: userInfo.id,
-                                    items: [knife.id, +amount],
+                                    items: [knife.id, Math.floor(+amount)],
                                     is_payed: false
                                 })
                             }
@@ -76,10 +76,7 @@ const KnifeCard = ({ knife, amount }: { knife: Knife; amount?: number }) => {
                     <Text style={styles.price}>${knife.price}</Text>
                     <Text style={styles.brand}>{knife.brand}</Text>
                 </View>
-                <Image
-                    source={{ uri: `data:image/png;base64${knife.images[0]}` }}
-                    style={styles.image}
-                />
+                <Image source={{ uri: knife.images[0] }} style={styles.image} />
             </View>
             <View style={styles.detailsContainer}>
                 <Text style={styles.details}>
